@@ -27,24 +27,35 @@ import QuickActions from "../components/dashboard/QuickActions";
 export default function Dashboard() {
   const [leads, setLeads] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Changed to false by default
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [authError, setAuthError] = useState(null);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   useEffect(() => {
-    loadData();
+    // Only check authentication silently, don't redirect automatically
+    checkAuthenticationSilently();
   }, []);
 
-  const loadData = async () => {
-    setIsLoading(true);
+  const checkAuthenticationSilently = async () => {
     try {
-      // Try to get user first to check authentication
       const currentUser = await User.me();
       setUser(currentUser);
       setIsAuthenticated(true);
-      
-      // If authenticated, load data
+      // Only load data if user is authenticated
+      await loadUserData();
+    } catch (error) {
+      // Silently handle authentication failure - don't redirect or show errors
+      console.log("User not authenticated (this is normal for public visitors)");
+      setIsAuthenticated(false);
+    }
+    setHasCheckedAuth(true);
+  };
+
+  const loadUserData = async () => {
+    setIsLoading(true);
+    try {
       const [leadsData, campaignsData] = await Promise.all([
         Lead.list("-created_date", 100),
         Campaign.list("-created_date", 20)
@@ -52,10 +63,7 @@ export default function Dashboard() {
       setLeads(leadsData);
       setCampaigns(campaignsData);
     } catch (error) {
-      console.log("User not authenticated:", error);
-      setIsAuthenticated(false);
-      setLeads([]);
-      setCampaigns([]);
+      console.error("Error loading user data:", error);
     }
     setIsLoading(false);
   };
@@ -99,7 +107,23 @@ export default function Dashboard() {
 
   const stats = getStats();
 
-  // Show sign in prompt if not authenticated
+  // Show loading only if we haven't checked auth yet
+  if (!hasCheckedAuth) {
+    return (
+      <div className="p-6 md:p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-lab-text">Loading MyLabBox...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show public landing page if not authenticated
   if (!isAuthenticated) {
     return (
       <div className="p-6 md:p-8 space-y-8">

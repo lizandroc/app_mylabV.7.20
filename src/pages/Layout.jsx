@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -73,9 +72,9 @@ export default function Layout({ children, currentPageName }) {
       setUser(currentUser);
       setIsAuthenticated(true);
     } catch (error) {
-      console.error("Authentication check failed:", error); // Added for debugging
+      // Silently handle - don't redirect or show errors for public visitors
       setIsAuthenticated(false);
-      setUser(null); // Ensure user is null if not authenticated
+      setUser(null);
     }
   };
 
@@ -214,4 +213,3 @@ export default function Layout({ children, currentPageName }) {
     </SidebarProvider>
   );
 }
-
